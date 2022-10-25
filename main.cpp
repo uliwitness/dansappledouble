@@ -113,13 +113,27 @@ int main(int argc, char* argv[]) {
                 cout << "Creator: " << macCreator << "\n";
                 ofstream jsonFInfoFile("FInfo.json");
                 jsonFInfoFile << "{\n    \"type\": \"" << macType << "\",\n"
-                                << "    \"creator\": \"" << macCreator << "\"\n"
-                                << "}";
+                              << "    \"creator\": \"" << macCreator << "\"\n"
+                              << "}";
                 vector<char> fInfo(currEntry.length, 0);
                 doubleFile.seekg(currEntry.offset);
                 doubleFile.read(fInfo.data(), fInfo.size());
                 ofstream resDataFile("FInfo.bin");
                 resDataFile.write(fInfo.data(), fInfo.size());
+                break;
+            }
+
+            case DATA_FORK: {
+                vector<char> fData(currEntry.length, 0);
+                doubleFile.seekg(currEntry.offset);
+                doubleFile.read(fData.data(), fData.size());
+                string fName(argv[1]);
+                auto pos = fName.rfind('/');
+                if (pos != string::npos) {
+                    fName = fName.substr(pos + 1);
+                }
+                ofstream fDataFile(fName);
+                fDataFile.write(fData.data(), fData.size());
                 break;
             }
 

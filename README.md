@@ -23,7 +23,9 @@ It will then write an `FInfo.json` file containing the MacOS type code and creat
 the file to the current directory. It will also write a `TYPE_123_Name.bin` file for each
 resource containing its raw data (where 123 would be the resource ID number). Finally, it
 will write an `FInfo.bin` file containing the raw file info data (`FInfo` and `FXInfo`
-data structures).
+data structures). If it is an _AppleSingle_ file containing a data fork, it will also create
+a file with the same name as the original AppleSingle file into the current directory, in
+which it will write the data fork of the file.
 
 
 License
