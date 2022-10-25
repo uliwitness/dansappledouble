@@ -1,11 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <vector>
+#include "ReClassicfication/InterfaceLib/FakeResources.h"
 
 #define ENDIAN_SWAP_32(n)      (((n) & 0xFF000000UL) >> 24 | \
                                 ((n) & 0x00FF0000UL) >> 8 | \
                                 ((n) & 0x0000FF00UL) << 8 | \
-                                ((n) & 0x000000FFUL) >> 24)
+                                ((n) & 0x000000FFUL) << 24)
 
 #define ENDIAN_SWAP_16(n)      (((n) & 0xFF00U) >> 8 | \
                                 ((n) & 0x00FFU) << 8)
@@ -100,7 +102,7 @@ int main(int argc, char* argv[]) {
         auto &currEntry = currEntryPair.second;
 
         switch (currEntryPair.first) {
-            case MACINTOSH_FILE_INFO: {
+            case FINDER_INFO: {
                 char macType[5] = {0};
                 char macCreator[5] = {0};
                 doubleFile.seekg(currEntry.offset);
@@ -109,11 +111,48 @@ int main(int argc, char* argv[]) {
                 cout << "\n";
                 cout << "   Type: " << macType << "\n";
                 cout << "Creator: " << macCreator << "\n";
+                ofstream jsonFInfoFile("FInfo.json");
+                jsonFInfoFile << "{\n    \"type\": \"" << macType << "\",\n"
+                                << "    \"creator\": \"" << macCreator << "\"\n"
+                                << "}";
+                vector<char> fInfo(currEntry.length, 0);
+                doubleFile.seekg(currEntry.offset);
+                doubleFile.read(fInfo.data(), fInfo.size());
+                ofstream resDataFile("FInfo.bin");
+                resDataFile.write(fInfo.data(), fInfo.size());
                 break;
             }
 
             case RESOURCE_FORK: {
+                short refNum = fakeresfileopen(argv[1], "r", currEntry.offset);
+                short numTypes = FakeCount1Types();
+                for (short x = 1; x <= numTypes; ++x) {
+                    uint32_t currType = 0;
+                    FakeGet1IndType(&currType, x);
+                    short numResources = FakeCount1Resources(currType);
+                    for(short y = 1; y <= numResources; ++y) {
+                        Handle res = FakeGet1IndResource(currType, y);
+                        int16_t theID = 0;
+                        uint32_t theType = 0;
+                        unsigned char name[257] = {0};
+                        FakeGetResInfo(res, &theID, &theType,
+                                       name);
+                        theType = ENDIAN_SWAP_32(theType);
+                        name[name[0] + 1] = 0;
+                        string fname;
+                        fname.append((char*)&theType, 4);
+                        fname.append("_");
+                        fname.append(to_string(theID));
+                        fname.append("_");
+                        fname.append(((char*)name) + 1);
+                        fname.append(".bin");
 
+                        cout << "Writing " << fname << "..." << endl;
+
+                        ofstream resDataFile(fname);
+                        resDataFile.write(*res, FakeGetHandleSize(res));
+                    }
+                }
                 break;
             }
         }
